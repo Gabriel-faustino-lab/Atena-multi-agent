@@ -43,3 +43,76 @@
     background: hsl(var(--muted));
   }
 }
+
+@keyframes atena-terminal-scan {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.9;
+  }
+  82% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes atena-live-dot {
+  0%,
+  100% {
+    transform: scale(0.72);
+    box-shadow: 0 0 0 0 hsl(var(--success) / 0.45);
+  }
+  50% {
+    transform: scale(1);
+    box-shadow: 0 0 0 3px hsl(var(--success) / 0);
+  }
+}
+
+@keyframes atena-rich-event-enter {
+  from {
+    transform: translateY(2px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.atena-terminal-scan {
+  width: 58%;
+  animation: atena-terminal-scan 1.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.atena-live-dot {
+  animation: atena-live-dot 1.15s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.atena-output-bar {
+  transition:
+    height 120ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 180ms ease,
+    opacity 180ms ease;
+}
+
+.atena-rich-event {
+  animation: atena-rich-event-enter 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atena-terminal-scan,
+  .atena-live-dot,
+  .atena-rich-event {
+    animation: none;
+  }
+
+  .atena-output-bar {
+    transition: none;
+  }
+}

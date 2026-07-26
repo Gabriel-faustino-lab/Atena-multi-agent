@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import {
   Cpu,
   Folder,
@@ -26,7 +26,13 @@ import {
 } from "@/components/ui/command-palette"
 import { useTheme } from "@/lib/theme"
 import { AgentPanel } from "@/features/agents/agent-panel"
-import { OrchestratorPanel } from "@/features/agents/orchestrator-panel"
+import { OrchestratorSetupDialog } from "@/features/agents/orchestrator-setup-dialog"
+import {
+  orchestratorCommand,
+  roleMeta,
+  workerCommand,
+  type OrchestratorSetup,
+} from "@/features/agents/orchestrator-setup"
 import {
   TerminalGrid,
   type TerminalPaneSummary,
@@ -34,7 +40,7 @@ import {
 import { SessionPanel } from "@/features/sessions/session-panel"
 import { GitPanel } from "@/features/git/git-panel"
 import { SettingsPanel } from "@/features/settings/settings-panel"
-import { listAgents } from "@/lib/db"
+import { listAgents, setSetting } from "@/lib/db"
 import { listProcesses } from "@/lib/pty"
 import type { Workspace, Agent } from "@/types"
 import { getCliAppearance } from "@/features/terminal/terminal-cli"
@@ -51,13 +57,18 @@ import {
 
 interface WorkspaceViewProps {
   workspace: Workspace
+  initialSetup: OrchestratorSetup
   onBack: () => void
 }
 
 type ViewTab =
   "orchestrator" | "agents" | "terminals" | "sessions" | "git" | "settings"
 
-export function WorkspaceView({ workspace, onBack }: WorkspaceViewProps) {
+export function WorkspaceView({
+  workspace,
+  initialSetup,
+  onBack,
+}: WorkspaceViewProps) {
   const { theme, themes, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState<ViewTab>("terminals")
   const [agents, setAgents] = useState<Agent[]>([])
@@ -66,6 +77,49 @@ export function WorkspaceView({ workspace, onBack }: WorkspaceViewProps) {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
   const [terminalPanes, setTerminalPanes] = useState<TerminalPaneSummary[]>([])
+  const [setupOpen, setSetupOpen] = useState(false)
+  const [orchestratorStarted, setOrchestratorStarted] = useState(true)
+  const [orchestratorSetup, setOrchestratorSetup] =
+    useState<OrchestratorSetup>(initialSetup)
+  const initialLaunchStarted = useRef(false)
+  const [orchestratorLaunch, setOrchestratorLaunch] = useState<{
+    id: number
+    panes: Array<{ label: string; command: string }>
+  }>()
+
+  const startConfiguredOrchestrator = useCallback(
+    (setup: OrchestratorSetup) => {
+      const launchId = Date.now()
+      const runtimeDirectory = `${workspace.path}\\.atena\\orchestration\\${launchId}`
+      setOrchestratorSetup(setup)
+      setOrchestratorStarted(true)
+      setSetupOpen(false)
+      setActiveTab("terminals")
+      setOrchestratorLaunch({
+        id: launchId,
+        panes: setup.assignments.map((assignment, index) => ({
+          label: `${assignment.cli} · ${roleMeta[assignment.role].label}`,
+          command:
+            index === 0
+              ? orchestratorCommand(setup, runtimeDirectory)
+              : workerCommand(assignment, runtimeDirectory),
+        })),
+      })
+      void setSetting(
+        `orchestrator.setup.${workspace.id}`,
+        JSON.stringify(setup)
+      ).catch((error) =>
+        console.error("Failed to save orchestrator setup:", error)
+      )
+    },
+    [workspace.id, workspace.path]
+  )
+
+  useEffect(() => {
+    if (initialLaunchStarted.current) return
+    initialLaunchStarted.current = true
+    startConfiguredOrchestrator(initialSetup)
+  }, [initialSetup, startConfiguredOrchestrator])
 
   const requestWorkspaceExit = useCallback(() => {
     if (terminalPanes.length === 0) {
@@ -133,9 +187,9 @@ export function WorkspaceView({ workspace, onBack }: WorkspaceViewProps) {
       },
       {
         id: "tab-orchestrator",
-        label: "orchestrator",
+        label: "configurar orchestrator",
         icon: <Cpu className="h-3.5 w-3.5" />,
-        action: () => setActiveTab("orchestrator"),
+        action: () => setSetupOpen(true),
       },
       {
         id: "tab-agents",
@@ -309,8 +363,8 @@ export function WorkspaceView({ workspace, onBack }: WorkspaceViewProps) {
                 </div>
               )}
               <SidebarItem
-                active={activeTab === "orchestrator"}
-                onClick={() => setActiveTab("orchestrator")}
+                active={setupOpen}
+                onClick={() => setSetupOpen(true)}
               >
                 <Cpu className="h-3.5 w-3.5" />
                 orchestrator
@@ -378,14 +432,9 @@ export function WorkspaceView({ workspace, onBack }: WorkspaceViewProps) {
               workspaceId={workspace.id}
               workspacePath={workspace.path}
               onPanesChange={setTerminalPanes}
+              launch={orchestratorLaunch}
             />
           </div>
-          {activeTab === "orchestrator" && (
-            <OrchestratorPanel
-              workspaceId={workspace.id}
-              workspacePath={workspace.path}
-            />
-          )}
           {activeTab === "agents" && (
             <AgentPanel
               workspaceId={workspace.id}
@@ -420,6 +469,14 @@ export function WorkspaceView({ workspace, onBack }: WorkspaceViewProps) {
         </span>
         <span className="ml-auto">{theme.name}</span>
       </BottomBar>
+
+      <OrchestratorSetupDialog
+        open={setupOpen}
+        workspaceName={workspace.name}
+        initialValue={orchestratorSetup}
+        onCancel={() => (orchestratorStarted ? setSetupOpen(false) : onBack())}
+        onStart={startConfiguredOrchestrator}
+      />
 
       <CommandPalette
         open={paletteOpen}

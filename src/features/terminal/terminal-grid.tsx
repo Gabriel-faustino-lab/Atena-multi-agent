@@ -33,6 +33,7 @@ interface TerminalGridProps {
   workspaceId: string
   workspacePath: string
   onPanesChange?: (panes: TerminalPaneSummary[]) => void
+  launch?: { id: number; panes: Array<{ label: string; command: string }> }
 }
 
 type LayoutMode = "auto" | "columns" | "grid"
@@ -83,6 +84,7 @@ export function TerminalGrid({
   workspaceId,
   workspacePath,
   onPanesChange,
+  launch,
 }: TerminalGridProps) {
   const [panes, setPanes] = useState<Pane[]>(() => [
     createPane(workspacePath, 1),
@@ -91,13 +93,41 @@ export function TerminalGrid({
   const [layoutReady, setLayoutReady] = useState(false)
 
   useEffect(() => {
+    if (!launch) return
+    setLayout("grid")
+    setPanes(
+      launch.panes.map((pane, index) => ({
+        id: `squad-${launch.id}-${index}`,
+        label: pane.label,
+        ordinal: index + 1,
+        workingDir: workspacePath,
+        command: pane.command,
+        activity: {
+          status: "running",
+          cli: pane.label.split(" ")[0],
+          resumeCommand: pane.command,
+        },
+      }))
+    )
+  }, [launch, workspacePath])
+
+  useEffect(() => {
+    if (launch) {
+      setLayoutReady(true)
+      return
+    }
+
     let cancelled = false
     setLayoutReady(false)
 
     getDefaultLayout(workspaceId)
       .then((saved) => {
         if (cancelled) return
-        if (saved) {
+        if (
+          saved &&
+          typeof saved.layoutJson === "string" &&
+          saved.layoutJson !== "undefined"
+        ) {
           const parsed = JSON.parse(saved.layoutJson) as PersistedTerminalLayout
           if (parsed.version === 1 && Array.isArray(parsed.panes)) {
             setLayout(parsed.mode || "auto")
@@ -119,7 +149,7 @@ export function TerminalGrid({
     return () => {
       cancelled = true
     }
-  }, [workspaceId, workspacePath])
+  }, [launch, workspaceId, workspacePath])
 
   useEffect(() => {
     if (!layoutReady) return
@@ -169,7 +199,9 @@ export function TerminalGrid({
             pane.activity.cli !== activity.cli)
             ? {
                 ...pane,
-                label: getCliAppearance(activity.cli).label,
+                label: pane.id.startsWith("squad-")
+                  ? pane.label
+                  : getCliAppearance(activity.cli).label,
                 activity,
               }
             : pane
@@ -273,20 +305,26 @@ export function TerminalGrid({
           </div>
         ) : (
           <div
-            className="grid h-full min-h-0 gap-px bg-[hsl(var(--border))]"
+            className="grid h-full min-h-0 gap-1.5 bg-[hsl(var(--background))] p-1.5"
             style={{
               gridTemplateColumns,
               gridAutoRows: "minmax(13rem, 1fr)",
             }}
           >
-            {panes.map((pane) =>
+            {panes.map((pane, index) =>
               (() => {
                 const cliAppearance = getCliAppearance(pane.activity.cli)
                 const CliIcon = cliAppearance.icon
                 return (
                   <div
                     key={pane.id}
-                    className="min-h-52 min-w-0 overflow-hidden bg-[hsl(var(--panel))]"
+                    className="min-h-52 min-w-0 overflow-hidden border bg-[hsl(var(--panel))] shadow-[0_10px_32px_hsl(0_0%_0%/0.16)] transition-colors duration-200"
+                    style={{
+                      borderColor:
+                        pane.activity.status === "running"
+                          ? `${cliAppearance.color}80`
+                          : "hsl(var(--border))",
+                    }}
                   >
                     <TerminalView
                       agentName={pane.label}
@@ -299,6 +337,7 @@ export function TerminalGrid({
                       }
                       accentColor={cliAppearance.color}
                       cliIcon={<CliIcon className="h-3.5 w-3.5" />}
+                      autoFocus={index === 0}
                     />
                   </div>
                 )

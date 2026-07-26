@@ -14,8 +14,15 @@ export default defineConfig({
     },
   },
   clearScreen: false,
+  optimizeDeps: {
+    noDiscovery: true,
+    include: ["react", "react-dom", "react-dom/client"],
+  },
   server: {
     port: 1420,
     strictPort: true,
+    watch: {
+      ignored: ["**/src-tauri/target/**"],
+    },
   },
 })

@@ -34,6 +34,35 @@ describe("useWorkspaces", () => {
     expect(gateway.list).toHaveBeenCalledTimes(2)
   })
 
+  it("refreshes silently after the initial load", async () => {
+    let resolveRefresh: ((value: Workspace[]) => void) | undefined
+    const gateway: WorkspaceGateway = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce([workspace])
+        .mockImplementationOnce(
+          () =>
+            new Promise<Workspace[]>((resolve) => {
+              resolveRefresh = resolve
+            })
+        ),
+      create: vi.fn(),
+      remove: vi.fn(),
+    }
+    const { result } = renderHook(() => useWorkspaces(gateway))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let refreshPromise: Promise<void> | undefined
+    act(() => {
+      refreshPromise = result.current.refresh()
+    })
+    expect(result.current.loading).toBe(false)
+
+    resolveRefresh?.([workspace])
+    await act(async () => refreshPromise)
+    expect(result.current.loading).toBe(false)
+  })
+
   it("exposes normalized gateway failures", async () => {
     const gateway: WorkspaceGateway = {
       list: vi.fn().mockRejectedValue({

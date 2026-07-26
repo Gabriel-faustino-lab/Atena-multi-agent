@@ -14,7 +14,6 @@ export function useWorkspaces(
   const [error, setError] = useState<AppError | null>(null)
 
   const refresh = useCallback(async () => {
-    setLoading(true)
     setError(null)
     try {
       setWorkspaces(await gateway.list())
