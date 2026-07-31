@@ -87,6 +87,11 @@ export function WorkspaceView({
     panes: Array<{ label: string; command: string }>
   }>()
 
+  const navigateToTab = useCallback((tab: ViewTab) => {
+    setSetupOpen(false)
+    setActiveTab(tab)
+  }, [])
+
   const startConfiguredOrchestrator = useCallback(
     (setup: OrchestratorSetup) => {
       const launchId = Date.now()
@@ -166,15 +171,15 @@ export function WorkspaceView({
         setPaletteOpen((o) => !o)
       } else if ((e.ctrlKey || e.metaKey) && e.key === "n") {
         e.preventDefault()
-        setActiveTab("agents")
+        navigateToTab("agents")
       } else if ((e.ctrlKey || e.metaKey) && e.key === "t") {
         e.preventDefault()
-        setActiveTab("terminals")
+        navigateToTab("terminals")
       }
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [])
+  }, [navigateToTab])
 
   const commands = useMemo<CommandItem[]>(
     () => [
@@ -183,7 +188,7 @@ export function WorkspaceView({
         label: "terminals (grid)",
         icon: <Terminal className="h-3.5 w-3.5" />,
         shortcut: "^T",
-        action: () => setActiveTab("terminals"),
+        action: () => navigateToTab("terminals"),
       },
       {
         id: "tab-orchestrator",
@@ -196,25 +201,25 @@ export function WorkspaceView({
         label: "agents",
         icon: <Bot className="h-3.5 w-3.5" />,
         shortcut: "^N",
-        action: () => setActiveTab("agents"),
+        action: () => navigateToTab("agents"),
       },
       {
         id: "tab-sessions",
         label: "sessions",
         icon: <History className="h-3.5 w-3.5" />,
-        action: () => setActiveTab("sessions"),
+        action: () => navigateToTab("sessions"),
       },
       {
         id: "tab-git",
         label: "git diff",
         icon: <GitBranch className="h-3.5 w-3.5" />,
-        action: () => setActiveTab("git"),
+        action: () => navigateToTab("git"),
       },
       {
         id: "tab-settings",
         label: "settings",
         icon: <Settings className="h-3.5 w-3.5" />,
-        action: () => setActiveTab("settings"),
+        action: () => navigateToTab("settings"),
       },
       ...themes.map((t) => ({
         id: `theme-${t.id}`,
@@ -228,7 +233,7 @@ export function WorkspaceView({
         action: requestWorkspaceExit,
       },
     ],
-    [themes, setTheme, requestWorkspaceExit]
+    [themes, setTheme, requestWorkspaceExit, navigateToTab]
   )
 
   return (
@@ -287,7 +292,7 @@ export function WorkspaceView({
               <button
                 type="button"
                 className="flex w-full items-center gap-2 text-left"
-                onClick={() => setActiveTab("terminals")}
+                onClick={() => navigateToTab("terminals")}
               >
                 <ChevronRight className="h-3 w-3 text-[hsl(var(--muted-foreground))]" />
                 <Folder className="h-3 w-3 text-[hsl(var(--warning))]" />
@@ -305,7 +310,7 @@ export function WorkspaceView({
             <div className="space-y-0.5 p-1.5">
               <SidebarItem
                 active={activeTab === "terminals"}
-                onClick={() => setActiveTab("terminals")}
+                onClick={() => navigateToTab("terminals")}
               >
                 <Terminal className="h-3.5 w-3.5" />
                 terminals
@@ -328,7 +333,7 @@ export function WorkspaceView({
                         key={pane.id}
                         type="button"
                         className="group my-0.5 flex w-full min-w-0 items-center gap-1.5 px-1.5 py-1 text-left hover:bg-[hsl(var(--panel-elevated))]"
-                        onClick={() => setActiveTab("terminals")}
+                        onClick={() => navigateToTab("terminals")}
                         title={`${pane.label}: ${pane.status} - ${pane.cli}`}
                       >
                         <span
@@ -371,21 +376,21 @@ export function WorkspaceView({
               </SidebarItem>
               <SidebarItem
                 active={activeTab === "agents"}
-                onClick={() => setActiveTab("agents")}
+                onClick={() => navigateToTab("agents")}
               >
                 <Bot className="h-3.5 w-3.5" />
                 agents
               </SidebarItem>
               <SidebarItem
                 active={activeTab === "sessions"}
-                onClick={() => setActiveTab("sessions")}
+                onClick={() => navigateToTab("sessions")}
               >
                 <History className="h-3.5 w-3.5" />
                 sessions
               </SidebarItem>
               <SidebarItem
                 active={activeTab === "git"}
-                onClick={() => setActiveTab("git")}
+                onClick={() => navigateToTab("git")}
               >
                 <GitBranch className="h-3.5 w-3.5" />
                 git
@@ -397,7 +402,7 @@ export function WorkspaceView({
               </p>
               <SidebarItem
                 active={activeTab === "settings"}
-                onClick={() => setActiveTab("settings")}
+                onClick={() => navigateToTab("settings")}
               >
                 <Settings className="h-3.5 w-3.5" />
                 settings
@@ -421,10 +426,10 @@ export function WorkspaceView({
 
         <main className="relative min-w-0 flex-1 overflow-hidden bg-[hsl(var(--background))]">
           <div
-            className={`absolute inset-0 ${
+            className={`absolute inset-0 transition-opacity ${
               activeTab === "terminals"
-                ? "visible"
-                : "invisible pointer-events-none"
+                ? "opacity-100"
+                : "pointer-events-none opacity-0"
             }`}
             aria-hidden={activeTab !== "terminals"}
           >
