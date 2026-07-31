@@ -40,42 +40,15 @@ jobs:
           tagName: v__VERSION__
           releaseName: "Atena v__VERSION__"
           releaseBody: |
-            # Atena v0.2.0 — o cockpit multiagente ganhou vida
+            # Atena v0.2.1 — correção de navegação entre painéis
 
-            Esta é a maior atualização do Atena até agora. A v0.2.0 transforma o terminal em uma superfície operacional viva, adiciona trabalho simultâneo entre projetos e permite montar um squad com diferentes CLIs, modelos e níveis de esforço antes de iniciar.
+            Esta atualização de manutenção corrige a sobreposição visual do terminal e do orquestrador ao navegar entre as áreas do workspace.
 
-            ## O que foi implementado
+            ## O que mudou
 
-            - **Vários projetos abertos ao mesmo tempo:** navegue por abas sem desmontar os outros workspaces ou interromper seus agentes.
-            - **Configuração completa do squad:** escolha Codex, Claude, OpenCode, Antigravity, Ollama ou uma CLI personalizada para cada papel.
-            - **Modelos e esforço por agente:** configure provider/model e reasoning effort individualmente para orquestrador, frontend, backend e segurança.
-            - **Delegação real entre agentes:** workers recebem tarefas por caixas postais locais, executam a CLI configurada e devolvem o resultado ao orquestrador.
-            - **Terminal vivo:** saída de ferramentas, comandos, arquivos, patches, testes e resultados aparece durante a execução, sem ficar retida até o final.
-            - **Modo ATENA e modo RAW:** alterne entre uma timeline operacional formatada e a saída original completa da CLI.
-            - **Telemetria por pane:** modelo, tokens, tempo de execução, última atividade e volume de saída ficam visíveis no próprio card.
-            - **Identidade visual das CLIs:** cores e ícones específicos, incluindo o ativo oficial do Codex publicado pela OpenAI.
-
-            ## O que melhorou
-
-            - A timeline agrupa código e alterações relacionadas em blocos legíveis, reduzindo ruído linha a linha.
-            - Eventos são classificados como plano, leitura, criação, edição, comando, validação, sucesso ou erro.
-            - Repinturas do terminal causadas por redimensionamento são deduplicadas e não repetem mais mensagens.
-            - Os panes respeitam movimento reduzido e limitam atualizações visuais para manter a PTY responsiva.
-            - O workspace preserva terminais em segundo plano ao alternar entre projetos.
-            - Atualizações da lista de projetos acontecem silenciosamente, sem reiniciar processos ativos.
-            - O layout evita foco automático concorrente quando vários agentes são iniciados juntos.
-
-            ## Correções importantes
-
-            - Corrigido o reinício dos terminais restantes ao fechar outro projeto.
-            - Corrigida a repetição de “aguardando delegação” ao trocar de workspace.
-            - Corrigida a saída silenciosa dos workers causada pelo pipeline de captura do PowerShell.
-            - Corrigida a restauração de layouts vazios ou inválidos.
-            - Corrigido o ícone incorreto do Codex.
-
-            ## Comparação com a v0.1.5
-
-            Na v0.1.5, o Atena já persistia o estado do orquestrador localmente, mas a experiência ainda era centrada em um projeto por vez e os workers pareciam terminais estáticos. Na v0.2.0, projetos e agentes permanecem ativos em paralelo, o squad é configurável antes da execução e cada pane mostra claramente o que está sendo criado, editado e validado em tempo real.
+            - O conteúdo dos terminais agora fica completamente oculto ao abrir Agents, Sessions, Git ou Settings, sem interromper os processos que continuam em segundo plano.
+            - A configuração do orquestrador é fechada automaticamente ao navegar para outro painel.
+            - Cliques na barra lateral, atalhos de teclado e ações da paleta de comandos passam pelo mesmo fluxo de navegação.
 
             ## Qualidade
 
